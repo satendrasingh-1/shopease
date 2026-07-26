@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout - ShopEase</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.checkout-layout { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; align-items: start; }
+@media(max-width:700px){ .checkout-layout { grid-template-columns: 1fr; } }
+.section-title { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
+.payment-opts { display: grid; gap: 0.8rem; }
+.pay-opt { display: flex; align-items: center; gap: 0.8rem; padding: 0.9rem 1rem; border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+.pay-opt:hover, .pay-opt.active { border-color: var(--accent); background: rgba(249,115,22,0.08); }
+.pay-opt input { accent-color: var(--accent); }
+.pay-opt .pay-label { font-weight: 600; }
+.pay-opt .pay-desc { font-size: 0.8rem; color: var(--muted); }
+.order-item { display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+.order-item:last-child { border: none; }
+.summary-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; }
+.summary-row.total { font-weight: 700; font-size: 1.1rem; color: var(--accent); padding-top: 0.7rem; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="nav-logo">🛒 ShopEase</a>
+  <div class="nav-links" id="nav-links"></div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Checkout</h1>
+    <p>Complete your order</p>
+  </div>
+  <div class="checkout-layout">
+    <div>
+      <!-- Shipping -->
+      <div class="card" style="margin-bottom:1.2rem">
+        <div class="section-title">📍 Shipping Address</div>
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="fullName" placeholder="Enter full name">
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="text" id="phone" placeholder="10-digit phone number">
+        </div>
+        <div class="form-group">
+          <label>Address</label>
+          <textarea id="address" placeholder="House no, Street, Area"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div class="form-group">
+            <label>City</label>
+            <input type="text" id="city" placeholder="City">
+          </div>
+          <div class="form-group">
+            <label>Pincode</label>
+            <input type="text" id="pincode" placeholder="6-digit pincode">
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment -->
+      <div class="card">
+        <div class="section-title">💳 Payment Method</div>
+        <div class="payment-opts">
+          <div class="pay-opt active" onclick="selectPayment('cod', this)">
+            <input type="radio" name="pay" checked>
+            <div>
+              <div class="pay-label">💵 Cash on Delivery</div>
+              <div class="pay-desc">Pay when your order arrives</div>
+            </div>
+          </div>
+          <div class="pay-opt" onclick="selectPayment('upi', this)">
+            <input type="radio" name="pay">
+            <div>
+              <div class="pay-label">📱 UPI Payment</div>
+              <div class="pay-desc">Pay via UPI (GPay, PhonePe, etc.)</div>
+            </div>
+          </div>
+          <div class="pay-opt" onclick="selectPayment('card', this)">
+            <input type="radio" name="pay">
+            <div>
+              <div class="pay-label">💳 Credit / Debit Card</div>
+              <div class="pay-desc">Visa, Mastercard, RuPay accepted</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div>
+      <div class="card">
+        <div class="section-title">🧾 Order Summary</div>
+        <div id="order-items"><div class="loader">Loading...</div></div>
+        <div style="margin-top:1rem">
+          <div class="summary-row"><span>Subtotal</span><span id="subtotal">₹0</span></div>
+          <div class="summary-row"><span>Shipping</span><span style="color:var(--success)">FREE</span></div>
+          <div class="summary-row total"><span>Total</span><span id="total">₹0</span></div>
+        </div>
+        <button id="place-btn" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:1.2rem;padding:0.85rem;font-size:1rem" onclick="placeOrder()">✅ Place Order</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="/js/app.js"></script>
+<script>
+let selectedPayment = 'cod';
+
+async function init() {
+  const me = await getMe();
+  if (!me.loggedIn || me.role !== 'buyer') { window.location.href = '/login'; return; }
+  await setupNav();
+  const cart = await api('/api/cart');
+  const items = cart.items || [];
+  if (!items.length) { window.location.href = '/cart'; return; }
+
+  const total = items.reduce((s, i) => s + (i.product?.price || 0) * i.quantity, 0);
+  document.getElementById('subtotal').textContent = formatPrice(total);
+  document.getElementById('total').textContent = formatPrice(total);
+  document.getElementById('order-items').innerHTML = items.map(i => `
+    <div class="order-item">
+      <span>${i.product?.name} × ${i.quantity}</span>
+      <span>${formatPrice((i.product?.price || 0) * i.quantity)}</span>
+    </div>
+  `).join('');
+}
+
+function selectPayment(method, el) {
+  selectedPayment = method;
+  document.querySelectorAll('.pay-opt').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  el.querySelector('input').checked = true;
+}
+
+async function placeOrder() {
+  const fullName = document.getElementById('fullName').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const address = document.getElementById('address').value.trim();
+  const city = document.getElementById('city').value.trim();
+  const pincode = document.getElementById('pincode').value.trim();
+
+  if (!fullName || !phone || !address || !city || !pincode) {
+    showToast('Please fill all shipping details', 'error'); return;
+  }
+
+  const btn = document.getElementById('place-btn');
+  btn.disabled = true; btn.textContent = 'Placing order...';
+
+  const res = await api('/api/orders/place', 'POST', {
+    shippingAddress: { fullName, phone, address, city, pincode },
+    paymentMethod: selectedPayment
+  });
+
+  if (res.orderId) {
+    showToast('Order placed successfully! 🎉');
+    setTimeout(() => window.location.href = '/orders', 1500);
+  } else {
+    showToast(res.message || 'Order failed', 'error');
+    btn.disabled = false; btn.textContent = '✅ Place Order';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Orders - ShopEase</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.order-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+.order-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.order-id { font-family: 'Syne', sans-serif; font-size: 0.85rem; color: var(--muted); }
+.order-items-list { border-top: 1px solid var(--border); padding-top: 1rem; }
+.oi { display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.9rem; }
+.order-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 0.5rem; }
+.addr { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="nav-logo">🛒 ShopEase</a>
+  <div class="nav-links" id="nav-links"></div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>My Orders</h1>
+    <p>Your complete order history</p>
+  </div>
+  <div id="orders-list"><div class="loader">Loading orders...</div></div>
+</div>
+
+<div id="toast"></div>
+<script src="/js/app.js"></script>
+<script>
+async function init() {
+  const me = await getMe();
+  if (!me.loggedIn) { window.location.href = '/login'; return; }
+  await setupNav();
+  loadOrders();
+}
+
+async function loadOrders() {
+  const orders = await api('/api/orders/mine');
+  const div = document.getElementById('orders-list');
+
+  if (!orders.length) {
+    div.innerHTML = `<div class="empty-state"><div class="icon">📦</div><h3>No orders yet</h3><p>Start shopping to see your orders here</p><a href="/products" class="btn btn-primary" style="margin-top:1rem">Shop Now</a></div>`;
+    return;
+  }
+
+  const payIcons = { cod: '💵', upi: '📱', card: '💳' };
+  div.innerHTML = orders.map(o => `
+    <div class="order-card">
+      <div class="order-header">
+        <div>
+          <div class="order-id">Order #${o._id.slice(-8).toUpperCase()}</div>
+          <div style="font-size:0.82rem;color:var(--muted);margin-top:0.2rem">${formatDate(o.createdAt)}</div>
+        </div>
+        <span class="badge badge-${o.status}">${o.status.charAt(0).toUpperCase() + o.status.slice(1)}</span>
+      </div>
+      <div class="order-items-list">
+        ${o.items.map(i => `
+          <div class="oi">
+            <span>${i.name} × ${i.quantity}</span>
+            <span>${formatPrice(i.price * i.quantity)}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="order-footer">
+        <div class="addr">
+          📍 ${o.shippingAddress?.fullName}, ${o.shippingAddress?.address}, ${o.shippingAddress?.city} - ${o.shippingAddress?.pincode}<br>
+          ${payIcons[o.paymentMethod] || '💳'} ${o.paymentMethod?.toUpperCase()}
+        </div>
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+          <span style="font-weight:700;font-size:1.05rem;color:var(--accent)">${formatPrice(o.totalAmount)}</span>
+          ${o.status === 'pending' ? `<button class="btn btn-danger btn-sm" onclick="cancelOrder('${o._id}', this)">Cancel Order</button>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function cancelOrder(orderId, btn) {
+  if (!confirm('Cancel this order?')) return;
+  btn.disabled = true; btn.textContent = 'Cancelling...';
+  const res = await api(`/api/orders/cancel/${orderId}`, 'PUT');
+  if (res.order) { showToast('Order cancelled'); loadOrders(); }
+  else { showToast(res.message || 'Cannot cancel', 'error'); btn.disabled = false; btn.textContent = 'Cancel Order'; }
+}
+
+init();
+</script>
+</body>
+</html>

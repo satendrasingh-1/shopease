@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vendor Dashboard - ShopEase</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+.tab { padding: 0.6rem 1.2rem; cursor: pointer; border-radius: 8px 8px 0 0; font-size: 0.9rem; color: var(--muted); border: 1px solid transparent; border-bottom: none; transition: all 0.2s; }
+.tab.active { background: var(--surface); border-color: var(--border); color: var(--text); margin-bottom: -1px; }
+.tab-content { display: none; } .tab-content.active { display: block; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; }
+.stat-card .label { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.4rem; }
+.stat-card .value { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--accent); }
+.product-row { display: flex; align-items: center; gap: 1rem; padding: 0.9rem 0; border-bottom: 1px solid var(--border); }
+.product-row:last-child { border: none; }
+.pr-thumb { width: 50px; height: 50px; background: var(--surface2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; }
+.pr-info { flex: 1; }
+.pr-name { font-weight: 600; font-size: 0.9rem; }
+.pr-meta { font-size: 0.8rem; color: var(--muted); }
+.order-row { padding: 1rem 0; border-bottom: 1px solid var(--border); }
+.order-row:last-child { border: none; }
+.modal-overlay { display: none; }
+.modal-overlay.open { display: flex; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="nav-logo">🛒 ShopEase</a>
+  <div class="nav-links" id="nav-links"></div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Vendor Dashboard</h1>
+    <p id="biz-name">Loading your business...</p>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('overview')">📊 Overview</div>
+    <div class="tab" onclick="switchTab('products')">📦 Products</div>
+    <div class="tab" onclick="switchTab('orders')">🧾 Orders</div>
+    <div class="tab" onclick="switchTab('business')">🏪 Business</div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="tab-content active" id="tab-overview">
+    <div class="stats">
+      <div class="stat-card"><div class="label">Total Products</div><div class="value" id="stat-products">0</div></div>
+      <div class="stat-card"><div class="label">Total Orders</div><div class="value" id="stat-orders">0</div></div>
+      <div class="stat-card"><div class="label">Revenue</div><div class="value" id="stat-revenue">₹0</div></div>
+    </div>
+    <div class="card">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:1rem">Recent Orders</div>
+      <div id="recent-orders"><div class="loader">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div class="tab-content" id="tab-products">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+      <h2 style="font-size:1.1rem">My Products</h2>
+      <button class="btn btn-primary" onclick="openProductModal()">+ Add Product</button>
+    </div>
+    <div class="card"><div id="products-list"><div class="loader">Loading...</div></div></div>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="tab-content" id="tab-orders">
+    <h2 style="font-size:1.1rem;margin-bottom:1.2rem">Customer Orders</h2>
+    <div class="card"><div id="all-orders"><div class="loader">Loading...</div></div></div>
+  </div>
+
+  <!-- BUSINESS -->
+  <div class="tab-content" id="tab-business">
+    <div id="biz-form-area"></div>
+  </div>
+</div>
+
+<!-- Add/Edit Product Modal -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Add Product</h2>
+      <button class="modal-close" onclick="closeProductModal()">✕</button>
+    </div>
+    <div id="modal-msg"></div>
+    <div class="form-group"><label>Product Name</label><input type="text" id="p-name" placeholder="Product name"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div class="form-group"><label>Price (₹)</label><input type="number" id="p-price" placeholder="0"></div>
+      <div class="form-group"><label>Stock</label><input type="number" id="p-stock" placeholder="0"></div>
+    </div>
+    <div class="form-group">
+      <label>Category</label>
+      <select id="p-category">
+        <option value="">Select category</option>
+        <option>Electronics</option><option>Clothing</option><option>Food</option>
+        <option>Books</option><option>Home</option><option>Sports</option><option>Other</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Description</label><textarea id="p-desc" placeholder="Product description"></textarea></div>
+    <div class="form-group"><label>Image URL (optional)</label><input type="text" id="p-image" placeholder="https://..."></div>
+    <div style="display:flex;gap:0.8rem;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeProductModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct()" id="save-btn">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="/js/app.js"></script>
+<script>
+let editingProductId = null;
+let myBusiness = null;
+
+async function init() {
+  const me = await getMe();
+  if (!me.loggedIn || me.role !== 'vendor') { window.location.href = '/login'; return; }
+  await setupNav();
+  myBusiness = await api('/api/business/mine');
+  if (myBusiness && myBusiness._id) {
+    document.getElementById('biz-name').textContent = '🏪 ' + myBusiness.name;
+  } else {
+    document.getElementById('biz-name').textContent = 'No business yet — add one below';
+    switchTab('business');
+  }
+  loadOverview();
+  loadBizForm();
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  const tabs = ['overview','products','orders','business'];
+  const idx = tabs.indexOf(name);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'products') loadProducts();
+  if (name === 'orders') loadOrders();
+}
+
+async function loadOverview() {
+  const [products, orders] = await Promise.all([api('/api/products/mine'), api('/api/orders/vendor')]);
+  document.getElementById('stat-products').textContent = products.length || 0;
+  document.getElementById('stat-orders').textContent = orders.length || 0;
+  const revenue = (orders || []).filter(o => o.status !== 'cancelled').reduce((s, o) => s + o.totalAmount, 0);
+  document.getElementById('stat-revenue').textContent = formatPrice(revenue);
+  const recent = (orders || []).slice(0, 5);
+  document.getElementById('recent-orders').innerHTML = recent.length ? recent.map(o => `
+    <div class="order-row">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <span style="font-size:0.85rem;font-weight:600">Order #${o._id.slice(-6).toUpperCase()}</span>
+          <span style="font-size:0.8rem;color:var(--muted);margin-left:0.5rem">${o.user?.name || 'Customer'}</span>
+        </div>
+        <span class="badge badge-${o.status}">${o.status}</span>
+      </div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-top:0.3rem">${formatDate(o.createdAt)} · ${formatPrice(o.totalAmount)}</div>
+    </div>
+  `).join('') : '<div style="color:var(--muted);text-align:center;padding:2rem">No orders yet</div>';
+}
+
+async function loadProducts() {
+  const products = await api('/api/products/mine');
+  const EMOJI = { Electronics:'📱', Clothing:'👕', Food:'🍕', Books:'📚', Home:'🏠', Sports:'⚽', Other:'📦' };
+  document.getElementById('products-list').innerHTML = products.length ? products.map(p => `
+    <div class="product-row">
+      <div class="pr-thumb">${p.image ? `<img src="${p.image}" style="width:100%;height:100%;object-fit:cover;border-radius:8px" onerror="this.parentElement.textContent='${EMOJI[p.category]||'📦'}'">` : (EMOJI[p.category]||'📦')}</div>
+      <div class="pr-info">
+        <div class="pr-name">${p.name}</div>
+        <div class="pr-meta">${formatPrice(p.price)} · Stock: ${p.stock} · ${p.category || 'General'}</div>
+      </div>
+      <div style="display:flex;gap:0.5rem">
+        <button class="btn btn-outline btn-sm" onclick="editProduct(${JSON.stringify(p).replace(/"/g,'&quot;')})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p._id}')">Delete</button>
+      </div>
+    </div>
+  `).join('') : '<div style="color:var(--muted);text-align:center;padding:2rem">No products yet. Add your first product!</div>';
+}
+
+async function loadOrders() {
+  const orders = await api('/api/orders/vendor');
+  const div = document.getElementById('all-orders');
+  const payIcons = { cod:'💵', upi:'📱', card:'💳' };
+  div.innerHTML = orders.length ? orders.map(o => `
+    <div class="order-row">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem">
+        <div>
+          <span style="font-weight:600;font-size:0.9rem">Order #${o._id.slice(-8).toUpperCase()}</span>
+          <span style="font-size:0.8rem;color:var(--muted);margin-left:0.5rem">${o.user?.name || ''} · ${formatDate(o.createdAt)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.7rem">
+          <span class="badge badge-${o.status}">${o.status}</span>
+          <select onchange="updateStatus('${o._id}', this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:6px;font-size:0.8rem">
+            ${['pending','confirmed','shipped','delivered','cancelled'].map(s => `<option ${o.status===s?'selected':''} value="${s}">${s}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-top:0.4rem">${o.items.map(i=>`${i.name} ×${i.quantity}`).join(', ')} · ${payIcons[o.paymentMethod]||''} ${formatPrice(o.totalAmount)}</div>
+      <div style="font-size:0.8rem;color:var(--muted);margin-top:0.2rem">📍 ${o.shippingAddress?.city}, ${o.shippingAddress?.pincode}</div>
+    </div>
+  `).join('') : '<div style="color:var(--muted);text-align:center;padding:2rem">No orders received yet</div>';
+}
+
+async function updateStatus(orderId, status) {
+  await api(`/api/orders/status/${orderId}`, 'PUT', { status });
+  showToast('Status updated');
+}
+
+function loadBizForm() {
+  const b = myBusiness;
+  document.getElementById('biz-form-area').innerHTML = `
+    <div class="card" style="max-width:550px">
+      <h3 style="margin-bottom:1.5rem">${b && b._id ? 'Edit Business' : 'Add Your Business'}</h3>
+      <div id="biz-msg"></div>
+      <div class="form-group"><label>Business Name</label><input type="text" id="b-name" value="${b?.name||''}" placeholder="Your shop/business name"></div>
+      <div class="form-group"><label>Category</label>
+        <select id="b-category">
+          <option value="">Select category</option>
+          ${['Retail','Restaurant','Electronics','Clothing','Grocery','Other'].map(c => `<option ${b?.category===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Description</label><textarea id="b-desc" placeholder="About your business">${b?.description||''}</textarea></div>
+      <div class="form-group"><label>Address</label><input type="text" id="b-address" value="${b?.address||''}" placeholder="Business address"></div>
+      <div class="form-group"><label>Phone</label><input type="text" id="b-phone" value="${b?.phone||''}" placeholder="Contact number"></div>
+      <button class="btn btn-primary" onclick="saveBusiness()">${b && b._id ? 'Update Business' : 'Create Business'}</button>
+    </div>
+  `;
+}
+
+async function saveBusiness() {
+  const data = {
+    name: document.getElementById('b-name').value,
+    category: document.getElementById('b-category').value,
+    description: document.getElementById('b-desc').value,
+    address: document.getElementById('b-address').value,
+    phone: document.getElementById('b-phone').value
+  };
+  if (!data.name) { showToast('Business name required', 'error'); return; }
+  const res = await api('/api/business', 'POST', data);
+  if (res._id) {
+    myBusiness = res;
+    showToast('Business saved!');
+    document.getElementById('biz-name').textContent = '🏪 ' + res.name;
+    loadBizForm();
+  } else {
+    showToast(res.message || 'Error saving', 'error');
+  }
+}
+
+function openProductModal(p = null) {
+  editingProductId = p ? p._id : null;
+  document.getElementById('modal-title').textContent = p ? 'Edit Product' : 'Add Product';
+  document.getElementById('p-name').value = p?.name || '';
+  document.getElementById('p-price').value = p?.price || '';
+  document.getElementById('p-stock').value = p?.stock || '';
+  document.getElementById('p-category').value = p?.category || '';
+  document.getElementById('p-desc').value = p?.description || '';
+  document.getElementById('p-image').value = p?.image || '';
+  document.getElementById('modal-msg').innerHTML = '';
+  document.getElementById('product-modal').classList.add('open');
+}
+
+function closeProductModal() { document.getElementById('product-modal').classList.remove('open'); editingProductId = null; }
+
+function editProduct(p) { openProductModal(p); }
+
+async function saveProduct() {
+  if (!myBusiness?._id) { showToast('Create a business first', 'error'); return; }
+  const data = {
+    name: document.getElementById('p-name').value,
+    price: Number(document.getElementById('p-price').value),
+    stock: Number(document.getElementById('p-stock').value),
+    category: document.getElementById('p-category').value,
+    description: document.getElementById('p-desc').value,
+    image: document.getElementById('p-image').value
+  };
+  if (!data.name || !data.price) { document.getElementById('modal-msg').innerHTML = '<div class="alert alert-error">Name and price are required</div>'; return; }
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  let res;
+  if (editingProductId) res = await api(`/api/products/${editingProductId}`, 'PUT', data);
+  else res = await api('/api/products', 'POST', data);
+  btn.disabled = false; btn.textContent = 'Save Product';
+  if (res._id) { showToast('Product saved!'); closeProductModal(); loadProducts(); loadOverview(); }
+  else { document.getElementById('modal-msg').innerHTML = `<div class="alert alert-error">${res.message || 'Error'}</div>`; }
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  await api(`/api/products/${id}`, 'DELETE');
+  showToast('Product deleted');
+  loadProducts(); loadOverview();
+}
+
+init();
+</script>
+</body>
+</html>

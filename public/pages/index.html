@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopEase - E-Commerce</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.hero { text-align: center; padding: 5rem 2rem 3rem; }
+.hero h1 { font-size: 3rem; font-weight: 800; line-height: 1.1; margin-bottom: 1rem; }
+.hero h1 span { color: var(--accent); }
+.hero p { color: var(--muted); font-size: 1.1rem; max-width: 480px; margin: 0 auto 2rem; }
+.hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.features { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; max-width: 900px; margin: 3rem auto; padding: 0 1.5rem; }
+.feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center; }
+.feature-card .icon { font-size: 2rem; margin-bottom: 0.8rem; }
+.feature-card h3 { font-size: 1rem; margin-bottom: 0.4rem; }
+.feature-card p { color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="nav-logo">🛒 ShopEase</a>
+  <div class="nav-links" id="nav-links"></div>
+</nav>
+
+<div class="hero">
+  <h1>Buy & Sell with<br><span>ShopEase</span></h1>
+  <p>A complete marketplace — vendors list products, buyers shop and order. Simple, fast, and class-ready.</p>
+  <div class="hero-btns">
+    <a href="/products" class="btn btn-primary" style="font-size:1rem; padding: 0.75rem 2rem;">Browse Products</a>
+    <a href="/register" class="btn btn-outline" style="font-size:1rem; padding: 0.75rem 2rem;">Get Started</a>
+  </div>
+</div>
+
+<div class="features">
+  <div class="feature-card">
+    <div class="icon">🏪</div>
+    <h3>Vendor Dashboard</h3>
+    <p>Add your business, list products, manage stock and track orders.</p>
+  </div>
+  <div class="feature-card">
+    <div class="icon">🛍️</div>
+    <h3>Easy Shopping</h3>
+    <p>Browse products, add to cart, and checkout in seconds.</p>
+  </div>
+  <div class="feature-card">
+    <div class="icon">📦</div>
+    <h3>Order Tracking</h3>
+    <p>Track every order from placement to delivery in real-time.</p>
+  </div>
+  <div class="feature-card">
+    <div class="icon">💳</div>
+    <h3>Multiple Payments</h3>
+    <p>Pay via Cash on Delivery, UPI, or Card — your choice.</p>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>setupNav();</script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Products - ShopEase</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.filters { display: flex; gap: 0.8rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
+.filters input { flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 1rem; color: var(--text); font-family: 'DM Sans',sans-serif; outline: none; }
+.filters input:focus { border-color: var(--accent); }
+.filters select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 1rem; color: var(--text); font-family: 'DM Sans',sans-serif; outline: none; cursor: pointer; }
+.stock-badge { display: inline-block; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; margin-bottom: 0.5rem; }
+.in-stock { background: #052e16; color: #86efac; }
+.out-stock { background: #450a0a; color: #fca5a5; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="nav-logo">🛒 ShopEase</a>
+  <div class="nav-links" id="nav-links"></div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>Products</h1>
+    <p>Browse all available items</p>
+  </div>
+  <div class="filters">
+    <input type="text" id="search" placeholder="🔍 Search products..." oninput="loadProducts()">
+    <select id="category" onchange="loadProducts()">
+      <option value="">All Categories</option>
+      <option>Electronics</option>
+      <option>Clothing</option>
+      <option>Food</option>
+      <option>Books</option>
+      <option>Home</option>
+      <option>Sports</option>
+      <option>Other</option>
+    </select>
+  </div>
+  <div id="products-grid" class="grid-3"><div class="loader">Loading products...</div></div>
+</div>
+
+<div id="toast"></div>
+<script src="/js/app.js"></script>
+<script>
+let userRole = null;
+let isLoggedIn = false;
+
+async function init() {
+  await setupNav();
+  const me = await getMe();
+  userRole = me.role;
+  isLoggedIn = me.loggedIn;
+  loadProducts();
+}
+
+async function loadProducts() {
+  const search = document.getElementById('search').value;
+  const category = document.getElementById('category').value;
+  let url = '/api/products?';
+  if (search) url += `search=${encodeURIComponent(search)}&`;
+  if (category) url += `category=${encodeURIComponent(category)}`;
+
+  const grid = document.getElementById('products-grid');
+  grid.innerHTML = '<div class="loader">Loading...</div>';
+  const products = await api(url);
+
+  if (!products.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">🛒</div><h3>No products found</h3><p>Try a different search or category</p></div>`;
+    return;
+  }
+
+  const EMOJI = { Electronics:'📱', Clothing:'👕', Food:'🍕', Books:'📚', Home:'🏠', Sports:'⚽', Other:'📦' };
+  grid.innerHTML = products.map(p => `
+    <div class="product-card">
+      <div class="product-img">
+        ${p.image ? `<img src="${p.image}" alt="${p.name}" onerror="this.parentElement.innerHTML='${EMOJI[p.category]||'📦'}'">` : (EMOJI[p.category] || '📦')}
+      </div>
+      <div class="product-body">
+        <div class="product-name">${p.name}</div>
+        <div class="product-price">${formatPrice(p.price)}</div>
+        <div class="product-meta">📍 ${p.business?.name || 'Unknown Shop'} · ${p.category || 'General'}</div>
+        <span class="stock-badge ${p.stock > 0 ? 'in-stock' : 'out-stock'}">${p.stock > 0 ? `In Stock (${p.stock})` : 'Out of Stock'}</span>
+        ${p.description ? `<p style="color:var(--muted);font-size:0.82rem;margin-bottom:0.8rem;line-height:1.4">${p.description.slice(0,80)}${p.description.length>80?'...':''}</p>` : ''}
+        <div class="product-actions">
+          ${isLoggedIn && userRole === 'buyer' && p.stock > 0
+            ? `<button class="btn btn-primary btn-sm" onclick="addToCart('${p._id}', this)">🛒 Add to Cart</button>`
+            : (!isLoggedIn ? `<a href="/login" class="btn btn-outline btn-sm">Login to Buy</a>` : '')}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function addToCart(productId, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Adding...';
+  const res = await api('/api/cart/add', 'POST', { productId, quantity: 1 });
+  if (res.count !== undefined) {
+    showToast('Added to cart!');
+    btn.textContent = '✓ Added';
+    setTimeout(() => { btn.textContent = '🛒 Add to Cart'; btn.disabled = false; }, 2000);
+    updateCartBadge();
+  } else {
+    showToast(res.message || 'Failed to add', 'error');
+    btn.textContent = '🛒 Add to Cart';
+    btn.disabled = false;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
