@@ -1,4 +1,4 @@
-# ShopEase - Full E-Commerce App
+# ShopEase - Full E-Commerce Website
 
 A complete e-commerce application with Vendor & Buyer features.
 
